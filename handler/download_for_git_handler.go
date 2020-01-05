@@ -36,9 +36,9 @@ func DownloadGitHandler(ctx *gin.Context, params model.ReposParams, cacheDir str
 	}()
 
 	rep, err := git.PlainClone(savePath, false, &git.CloneOptions{
-		URL:          params.Git,
-		Progress:     os.Stdout,
-		Depth:        1,
+		URL:      params.Git,
+		Progress: os.Stdout,
+		Depth:    1,
 		//NoCheckout:   true,
 		SingleBranch: true,
 		RemoteName:   params.Tag,
@@ -89,27 +89,33 @@ func DownloadGitHandler(ctx *gin.Context, params model.ReposParams, cacheDir str
 	}
 
 	// zip
-	zip_file_path := filepath.Join(dir, params.Name+"-"+params.Tag+".zip")
-	if util.ZipDir(savePath, zip_file_path) {
-		cache_zip_file_path := filepath.Join(cacheDir, params.Repo, params.Name, params.Name+"-"+params.Tag+".zip")
-		cahe_base_path := filepath.Join(cacheDir, params.Repo, params.Name)
-		fmt.Println("cahe_base_path", cahe_base_path)
-		if err := os.MkdirAll(cahe_base_path, os.ModePerm); err != nil {
-			ctx.AbortWithStatusJSON(http.StatusBadRequest, gin.H{
-				"code": 0,
-				"msg":  err.Error(),
-			})
-			fmt.Println(err)
-			return
-		}
-		if err := os.Rename(zip_file_path, cache_zip_file_path); err != nil {
-			ctx.AbortWithStatusJSON(http.StatusBadRequest, gin.H{
-				"code": 0,
-				"msg":  err.Error(),
-			})
-			fmt.Println(err)
-			return
-		}
-		RedirectToCacheFile(ctx, params, cacheDir)
+	tgz_file_path := filepath.Join(dir, params.Name+"-"+params.Tag+".tgz")
+	if err := util.TarGzDir(savePath, tgz_file_path); err != nil {
+		ctx.AbortWithStatusJSON(http.StatusBadRequest, gin.H{
+			"code": 0,
+			"msg":  err.Error(),
+		})
+		fmt.Println(err)
+		return
 	}
+	cache_tgz_file_path := filepath.Join(cacheDir, params.Repo, params.Name, params.Name+"-"+params.Tag+".tgz")
+	cache_base_path := filepath.Join(cacheDir, params.Repo, params.Name)
+	fmt.Println("cache_base_path", cache_base_path)
+	if err := os.MkdirAll(cache_base_path, os.ModePerm); err != nil {
+		ctx.AbortWithStatusJSON(http.StatusBadRequest, gin.H{
+			"code": 0,
+			"msg":  err.Error(),
+		})
+		fmt.Println(err)
+		return
+	}
+	if err := os.Rename(tgz_file_path, cache_tgz_file_path); err != nil {
+		ctx.AbortWithStatusJSON(http.StatusBadRequest, gin.H{
+			"code": 0,
+			"msg":  err.Error(),
+		})
+		fmt.Println(err)
+		return
+	}
+	RedirectToCacheFile(ctx, params, cacheDir)
 }

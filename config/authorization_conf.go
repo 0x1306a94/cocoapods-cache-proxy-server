@@ -4,57 +4,16 @@ import (
 	"encoding/base64"
 	"fmt"
 	"strings"
-	"sync"
 )
 
 type AuthorizationConfig struct {
-	sync.RWMutex
-	users []authorizationUser
-
-	admin authorizationUser
-}
-
-type authorizationUser struct {
 	user     string
 	password string
-	admin    bool
 }
 
-func (this *AuthorizationConfig) SetupAdminUser(user, password string) {
-	this.Lock()
-	defer this.Unlock()
-	this.admin = authorizationUser{user, password, true}
-}
-
-func (this *AuthorizationConfig) Add(user, password string) bool {
-	if len(user) == 0 || len(password) == 0 {
-		return false
-	}
-	this.Lock()
-	defer this.Unlock()
-	for idx, v := range this.users {
-		if v.user == user {
-			this.users[idx] = authorizationUser{user, password, false}
-			return true
-		}
-	}
-	this.users = append(this.users, authorizationUser{user, password, false})
-	return true
-}
-
-func (this *AuthorizationConfig) Remove(user, password string) bool {
-	if len(user) == 0 || len(password) == 0 {
-		return false
-	}
-	this.Lock()
-	defer this.Unlock()
-	for idx, v := range this.users {
-		if v.user == user && v.password == password {
-			this.users = append(this.users[:idx], this.users[idx+1:]...)
-			return true
-		}
-	}
-	return false
+func (this *AuthorizationConfig) SetupUser(user, password string) {
+	this.user = user
+	this.password = password
 }
 
 func (this *AuthorizationConfig) ValidationForBasicAuthorization(value string) bool {
@@ -74,29 +33,8 @@ func (this *AuthorizationConfig) ValidationForBasicAuthorization(value string) b
 	if len(pair) != 2 {
 		return false
 	}
-	if this.Validation(pair[0], pair[1]) || this.ValidationAdmin(pair[0], pair[1]) {
+	if this.user == pair[0] && this.password == pair[1] {
 		return true
 	}
 	return false
-}
-
-func (this *AuthorizationConfig) Validation(user, password string) bool {
-	if len(user) == 0 || len(password) == 0 {
-		return false
-	}
-	this.RLock()
-	defer this.RUnlock()
-	for _, v := range this.users {
-		if v.user == user && v.password == password {
-			return true
-		}
-	}
-	return false
-}
-
-func (this *AuthorizationConfig) ValidationAdmin(user, password string) bool {
-	if len(user) == 0 || len(password) == 0 {
-		return false
-	}
-	return this.admin.user == user && this.admin.password == password
 }

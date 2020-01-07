@@ -10,11 +10,12 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"time"
 )
 
 func DownloadGitHandler(ctx *gin.Context, params model.ReposParams, cacheDir string) {
 
-	dir, err := ioutil.TempDir("", "cocoapods-proxy-temp"+params.Repo+params.Name)
+	dir, err := ioutil.TempDir("", "cocoapods-proxy-temp"+params.Name+fmt.Sprint(time.Now().Unix()))
 	if err != nil {
 		ctx.AbortWithStatusJSON(http.StatusBadRequest, gin.H{
 			"code": 0,
@@ -98,8 +99,8 @@ func DownloadGitHandler(ctx *gin.Context, params model.ReposParams, cacheDir str
 		fmt.Println(err)
 		return
 	}
-	cache_tgz_file_path := filepath.Join(cacheDir, params.Repo, params.Name, params.Name+"-"+params.Tag+".tgz")
-	cache_base_path := filepath.Join(cacheDir, params.Repo, params.Name)
+	cache_tgz_file_path := filepath.Join(cacheDir, "repos", params.Name, params.Name+"-"+params.Tag+".tgz")
+	cache_base_path := filepath.Join(cacheDir, "repos", params.Name)
 	fmt.Println("cache_base_path", cache_base_path)
 	if err := os.MkdirAll(cache_base_path, os.ModePerm); err != nil {
 		ctx.AbortWithStatusJSON(http.StatusBadRequest, gin.H{

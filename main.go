@@ -14,37 +14,40 @@ import (
 )
 
 var (
-	user     = ""
-	password = ""
-)
-
-var (
 	authConfig  *config.AuthorizationConfig = &config.AuthorizationConfig{}
 	lauchConfig *LauchConfig                = &LauchConfig{}
+	_version_ = ""
+	_commit_ = ""
 )
 
 type LauchConfig struct {
-	AdminUser     string
-	AdminPassword string
-	Port          int64
-	BaseURL       string
-	CacheDir      string
+	User     string
+	Password string
+	Port     int64
+	Verbose bool
+	CacheDir string
 }
 
 func parseLauchConfig(cnf *LauchConfig) {
-	flag.StringVar(&cnf.AdminUser, "user", "admin", "admin user name, 3-10 characters")
-	flag.StringVar(&cnf.AdminPassword, "password", "123456dd", "admin user password, 6-10 characters")
+	flag.StringVar(&cnf.User, "user", "", "http basic auth user name, 3-10 characters")
+	flag.StringVar(&cnf.Password, "password", "", "http basic auth password, 6-10 characters")
 	flag.Int64Var(&cnf.Port, "port", 9898, "监听端口 1024 ~ 65535 之间")
-	flag.StringVar(&cnf.BaseURL, "baseurl", "", "base url 默认为 http://127.0.0.1:port")
 	flag.StringVar(&cnf.CacheDir, "dir", "./repo/cache", "缓存文件存放目录")
+	flag.BoolVar(&cnf.Verbose, "verbose", false, "是否开启请求日志")
+	version := false
+	flag.BoolVar(&version, "version", false, "显示版本信息")
 	flag.Parse()
-
-	if len(cnf.AdminUser) < 3 || len(cnf.AdminUser) > 10 {
+	if version {
+		fmt.Println("version: ", _version_)
+		fmt.Println("commit: ", _commit_)
+		os.Exit(0)
+	}
+	if len(cnf.User) < 3 || len(cnf.User) > 10 {
 		flag.Usage()
 		os.Exit(-1)
 	}
 
-	if len(cnf.AdminPassword) < 6 || len(cnf.AdminPassword) > 10 {
+	if len(cnf.Password) < 6 || len(cnf.Password) > 10 {
 		flag.Usage()
 		os.Exit(-1)
 	}
@@ -52,10 +55,6 @@ func parseLauchConfig(cnf *LauchConfig) {
 	if cnf.Port < 1024 || cnf.Port > 65535 {
 		flag.Usage()
 		os.Exit(-1)
-	}
-
-	if len(cnf.BaseURL) == 0 {
-		cnf.BaseURL = fmt.Sprintf("http://127.0.0.1:%v", cnf.Port)
 	}
 
 	if len(cnf.CacheDir) == 0 {
@@ -88,7 +87,20 @@ func parseLauchConfig(cnf *LauchConfig) {
 func main() {
 
 	parseLauchConfig(lauchConfig)
-	authConfig.SetupAdminUser(lauchConfig.AdminUser, lauchConfig.AdminPassword)
+	tips := `
+如何使用: 
+	1. 请先安装 cocoapods 插件 https://github.com/0x1306a94/cocoapods-cache-proxy
+	2. 安装完插件后 执行 pod cache proxy add NAME http://domain/cocoapods/proxy/repos USER PASSWORD (USER PASSWORD 为 http basic auth user and password)
+	3. 在Podfile 中 添加 plugin "cocoapods-cache-proxy", :proxy => "NAME" NAME 为第二步中的 NAME
+	4. 然后直接 pod install 就行
+	`
+	fmt.Println(tips)
+	if lauchConfig.Verbose {
+		gin.SetMode(gin.DebugMode)
+	} else {
+		gin.SetMode(gin.ReleaseMode)
+	}
+	authConfig.SetupUser(lauchConfig.User, lauchConfig.Password)
 
 	router := setupRouter()
 
@@ -110,6 +122,6 @@ func setupRouter() *gin.Engine {
 	//	ctx.Set("authConfig", authConfig)
 	//	ctx.Next()
 	//})
-	reposRouter.GET("/:repo/:name", handler.ReposIndexHandler(authConfig, lauchConfig.CacheDir))
+	reposRouter.GET("/:name", handler.ReposIndexHandler(authConfig, lauchConfig.CacheDir))
 	return router
 }

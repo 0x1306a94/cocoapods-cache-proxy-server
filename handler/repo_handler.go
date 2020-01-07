@@ -30,7 +30,7 @@ func ReposIndexHandler(authConfig *config.AuthorizationConfig, cacheDir string) 
 			return
 		}
 		fmt.Println(params)
-		cache_tgz_file_path := filepath.Join(cacheDir, params.Repo, params.Name, params.Name+"-"+params.Tag+".tgz")
+		cache_tgz_file_path := filepath.Join(cacheDir, "repos", params.Name, params.Name+"-"+params.Tag+".tgz")
 		if util.Exists(cache_tgz_file_path) {
 			RedirectToCacheFile(ctx, params, cacheDir)
 			return

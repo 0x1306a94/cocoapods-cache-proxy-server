@@ -23,6 +23,7 @@
 /vendor/
 /Godeps/
 /repo/
+/bin/
 
 ### macOS ###
 # General

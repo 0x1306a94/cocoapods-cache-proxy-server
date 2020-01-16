@@ -6,16 +6,16 @@
 ```shell
 # install
 brew tap 0x1306a94/homebrew-tap
-brew install cocoapods-cache-proxy
+brew install cocoapods-cache-proxy-server
 
 # start
-brew services start cocoapods-cache-proxy
+brew services start cocoapods-cache-proxy-server
 
 # stop
-brew services stop cocoapods-cache-proxy
+brew services stop cocoapods-cache-proxy-server
 
 # restart
-brew services restart cocoapods-cache-proxy
+brew services restart cocoapods-cache-proxy-server
 
 # 修改配置文件
 /usr/local/Cellar/cocoapods-cache-proxy-server/cache/cocoapods-cache-proxy-server/conf.yaml

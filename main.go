@@ -3,9 +3,12 @@ package main
 import (
 	"cocoapods-cache-proxy-server/config"
 	"cocoapods-cache-proxy-server/handler"
+	"cocoapods-cache-proxy-server/util"
 	"flag"
 	"fmt"
 	"github.com/gin-gonic/gin"
+	"gopkg.in/yaml.v2"
+	"io/ioutil"
 	"log"
 	"net/http"
 	"os"
@@ -16,32 +19,66 @@ import (
 var (
 	authConfig  *config.AuthorizationConfig = &config.AuthorizationConfig{}
 	lauchConfig *LauchConfig                = &LauchConfig{}
-	_version_ = ""
-	_commit_ = ""
+	_version_                               = ""
+	_commit_                                = ""
 )
 
 type LauchConfig struct {
-	User     string
-	Password string
-	Port     int64
-	Verbose bool
-	CacheDir string
+	User     string `yaml: "user"`
+	Password string `yaml: "password"`
+	Port     int64  `yaml: "port"`
+	Verbose  bool   `yaml: "verbose"`
+	CacheDir string `yaml: "cacheDir"`
 }
 
 func parseLauchConfig(cnf *LauchConfig) {
-	flag.StringVar(&cnf.User, "user", "", "http basic auth user name, 3-10 characters")
-	flag.StringVar(&cnf.Password, "password", "", "http basic auth password, 6-10 characters")
+	flag.StringVar(&cnf.User, "user", "", "http basic auth user name, 3-10 characters, or environment variable COCOAPODS_CACHE_PROXY_USER")
+	flag.StringVar(&cnf.Password, "password", "", "http basic auth password, 6-10 characters, or environment variable COCOAPODS_CACHE_PROXY_PASSWORD")
 	flag.Int64Var(&cnf.Port, "port", 9898, "监听端口 1024 ~ 65535 之间")
-	flag.StringVar(&cnf.CacheDir, "dir", "./repo/cache", "缓存文件存放目录")
+	flag.StringVar(&cnf.CacheDir, "dir", "./repo/cache", "缓存文件存放目录, or environment variable COCOAPODS_CACHE_PROXY_CACHE_DIR")
 	flag.BoolVar(&cnf.Verbose, "verbose", false, "是否开启请求日志")
 	version := false
 	flag.BoolVar(&version, "version", false, "显示版本信息")
+
+	confPath := ""
+	flag.StringVar(&confPath, "conf", "", "配置文件路径")
 	flag.Parse()
+
 	if version {
 		fmt.Println("version: ", _version_)
 		fmt.Println("commit: ", _commit_)
 		os.Exit(0)
 	}
+
+	if len(confPath) > 0 {
+		path, err := filepath.Abs(confPath)
+		if err != nil {
+			log.Fatal(err)
+		}
+		if util.Exists(path) && util.IsFile(path) {
+			file, err := os.Open(path)
+			if err != nil {
+				log.Fatal(err)
+			}
+			bytes, err := ioutil.ReadAll(file)
+			if err != nil {
+				log.Fatal(err)
+			}
+			err = yaml.Unmarshal(bytes, &cnf)
+			if err != nil {
+				log.Fatal(err)
+			}
+		}
+	}
+
+	if len(cnf.User) == 0 {
+		cnf.User = os.Getenv("COCOAPODS_CACHE_PROXY_USER")
+	}
+
+	if len(cnf.Password) == 0 {
+		cnf.Password = os.Getenv("COCOAPODS_CACHE_PROXY_PASSWORD")
+	}
+
 	if len(cnf.User) < 3 || len(cnf.User) > 10 {
 		flag.Usage()
 		os.Exit(-1)
@@ -55,6 +92,10 @@ func parseLauchConfig(cnf *LauchConfig) {
 	if cnf.Port < 1024 || cnf.Port > 65535 {
 		flag.Usage()
 		os.Exit(-1)
+	}
+
+	if len(cnf.CacheDir) == 0 {
+		cnf.CacheDir = os.Getenv("COCOAPODS_CACHE_PROXY_CACHE_DIR")
 	}
 
 	if len(cnf.CacheDir) == 0 {

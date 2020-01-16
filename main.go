@@ -122,6 +122,6 @@ func setupRouter() *gin.Engine {
 	//	ctx.Set("authConfig", authConfig)
 	//	ctx.Next()
 	//})
-	reposRouter.GET("/:name", handler.ReposIndexHandler(authConfig, lauchConfig.CacheDir))
+	reposRouter.GET("/", handler.ReposIndexHandler(authConfig, lauchConfig.CacheDir))
 	return router
 }

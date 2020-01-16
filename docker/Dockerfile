@@ -7,7 +7,7 @@ ENV COCOAPODS_CACHE_PROXY_USER=admin \
 
 RUN mkdir -p /app/bin /app/cococapods/cache
 
-ADD https://github.com/0x1306a94/cocoapods-cache-proxy-server/releases/download/v2/cocoapods-cache-proxy-server-linux-amd64 /app/bin
+ADD ./bin/cocoapods-cache-proxy-server-linux-amd64 /app/bin
 
 WORKDIR /app
 

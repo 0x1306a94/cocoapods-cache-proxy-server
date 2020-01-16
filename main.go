@@ -3,9 +3,12 @@ package main
 import (
 	"cocoapods-cache-proxy-server/config"
 	"cocoapods-cache-proxy-server/handler"
+	"cocoapods-cache-proxy-server/util"
 	"flag"
 	"fmt"
 	"github.com/gin-gonic/gin"
+	"gopkg.in/yaml.v2"
+	"io/ioutil"
 	"log"
 	"net/http"
 	"os"
@@ -16,16 +19,16 @@ import (
 var (
 	authConfig  *config.AuthorizationConfig = &config.AuthorizationConfig{}
 	lauchConfig *LauchConfig                = &LauchConfig{}
-	_version_ = ""
-	_commit_ = ""
+	_version_                               = ""
+	_commit_                                = ""
 )
 
 type LauchConfig struct {
-	User     string
-	Password string
-	Port     int64
-	Verbose bool
-	CacheDir string
+	User     string `yaml: "user"`
+	Password string `yaml: "password"`
+	Port     int64  `yaml: "port"`
+	Verbose  bool   `yaml: "verbose"`
+	CacheDir string `yaml: "cacheDir"`
 }
 
 func parseLauchConfig(cnf *LauchConfig) {
@@ -36,12 +39,38 @@ func parseLauchConfig(cnf *LauchConfig) {
 	flag.BoolVar(&cnf.Verbose, "verbose", false, "是否开启请求日志")
 	version := false
 	flag.BoolVar(&version, "version", false, "显示版本信息")
+
+	confPath := ""
+	flag.StringVar(&confPath, "conf", "", "配置文件路径")
 	flag.Parse()
+
 	if version {
 		fmt.Println("version: ", _version_)
 		fmt.Println("commit: ", _commit_)
 		os.Exit(0)
 	}
+
+	if len(confPath) > 0 {
+		path, err := filepath.Abs(confPath)
+		if err != nil {
+			log.Fatal(err)
+		}
+		if util.Exists(path) && util.IsFile(path) {
+			file, err := os.Open(path)
+			if err != nil {
+				log.Fatal(err)
+			}
+			bytes, err := ioutil.ReadAll(file)
+			if err != nil {
+				log.Fatal(err)
+			}
+			err = yaml.Unmarshal(bytes, &cnf)
+			if err != nil {
+				log.Fatal(err)
+			}
+		}
+	}
+
 	if len(cnf.User) == 0 {
 		cnf.User = os.Getenv("COCOAPODS_CACHE_PROXY_USER")
 	}

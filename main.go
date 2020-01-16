@@ -29,10 +29,10 @@ type LauchConfig struct {
 }
 
 func parseLauchConfig(cnf *LauchConfig) {
-	flag.StringVar(&cnf.User, "user", "", "http basic auth user name, 3-10 characters")
-	flag.StringVar(&cnf.Password, "password", "", "http basic auth password, 6-10 characters")
+	flag.StringVar(&cnf.User, "user", "", "http basic auth user name, 3-10 characters, or environment variable COCOAPODS_CACHE_PROXY_USER")
+	flag.StringVar(&cnf.Password, "password", "", "http basic auth password, 6-10 characters, or environment variable COCOAPODS_CACHE_PROXY_PASSWORD")
 	flag.Int64Var(&cnf.Port, "port", 9898, "监听端口 1024 ~ 65535 之间")
-	flag.StringVar(&cnf.CacheDir, "dir", "./repo/cache", "缓存文件存放目录")
+	flag.StringVar(&cnf.CacheDir, "dir", "./repo/cache", "缓存文件存放目录, or environment variable COCOAPODS_CACHE_PROXY_CACHE_DIR")
 	flag.BoolVar(&cnf.Verbose, "verbose", false, "是否开启请求日志")
 	version := false
 	flag.BoolVar(&version, "version", false, "显示版本信息")
@@ -42,6 +42,14 @@ func parseLauchConfig(cnf *LauchConfig) {
 		fmt.Println("commit: ", _commit_)
 		os.Exit(0)
 	}
+	if len(cnf.User) == 0 {
+		cnf.User = os.Getenv("COCOAPODS_CACHE_PROXY_USER")
+	}
+
+	if len(cnf.Password) == 0 {
+		cnf.Password = os.Getenv("COCOAPODS_CACHE_PROXY_PASSWORD")
+	}
+
 	if len(cnf.User) < 3 || len(cnf.User) > 10 {
 		flag.Usage()
 		os.Exit(-1)
@@ -55,6 +63,10 @@ func parseLauchConfig(cnf *LauchConfig) {
 	if cnf.Port < 1024 || cnf.Port > 65535 {
 		flag.Usage()
 		os.Exit(-1)
+	}
+
+	if len(cnf.CacheDir) == 0 {
+		cnf.CacheDir = os.Getenv("COCOAPODS_CACHE_PROXY_CACHE_DIR")
 	}
 
 	if len(cnf.CacheDir) == 0 {

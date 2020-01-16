@@ -131,7 +131,13 @@ func TarGzDir(dir, tarFile string) error {
 			return nil
 		}
 		if !info.IsDir() {
-			header, err := tar.FileInfoHeader(info, "")
+			var link string
+			if info.Mode()&os.ModeSymlink == os.ModeSymlink {
+				if link, err = os.Readlink(path); err != nil {
+					return err
+				}
+			}
+			header, err := tar.FileInfoHeader(info, link)
 			if err != nil {
 				return err
 			}
@@ -139,6 +145,10 @@ func TarGzDir(dir, tarFile string) error {
 			err = tw.WriteHeader(header)
 			if err != nil {
 				return err
+			}
+
+			if !info.Mode().IsRegular() { //nothing more to do for non-regular
+				return nil
 			}
 			src, err := os.Open(path)
 			if err != nil {
